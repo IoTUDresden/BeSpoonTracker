@@ -20,17 +20,14 @@ public class Initializer {
 
 	public void initBeSpoon() {
 		System.out.println("BeSpoon initializing...");
-		BeSpoonTracker bst = new BeSpoonTracker();
 
-		for (Tag t : getTagValues()) {
-			bst.addTag(t.getTagId(), t.getDistX(), t.getDistY());
-			// System.out.println(t.toString());
-		}
+		BeSpoonTracker bst = new BeSpoonTracker();
+		bst.setTags(getTagValues());
+		bst.start();
 
 		// bst.addTag(2024, 145, 0);
 		// bst.addTag(3383, 315, 290);
 		// bst.addTag(1107, 100, 0);
-		bst.start();
 
 		System.out.println("BeSpoon starting...");
 	}

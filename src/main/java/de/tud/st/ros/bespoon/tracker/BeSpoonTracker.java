@@ -1,8 +1,11 @@
 package de.tud.st.ros.bespoon.tracker;
 
 import java.util.Map;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
+
 import org.apache.commons.math3.geometry.euclidean.twod.Euclidean2D;
 import org.tud.bespoon.BeSpoon;
 import org.tud.bespoon.BeSpoon2D;
@@ -12,6 +15,9 @@ import org.tud.bespoon.event.BeSpoonTagEventListener;
 import org.tud.bespoon.model.BeSpoonTag;
 import org.tud.bespoon.model.Position;
 import org.tud.bespoon.model.Position2D;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 /**
  * 
@@ -27,20 +33,41 @@ public class BeSpoonTracker implements BeSpoonAnchorEventListener<Euclidean2D>, 
 
 	private BeSpoon<Euclidean2D> bespoon;
 
+	// Original Tags values
+	private List<Tag> tags;
 	// Save anchor distance from distinct tags, <TagId, Distance>
-	private Map<Integer, Integer> anchorDistance;
+	private Map<Integer, Tag> tracker;
+
+	// josn string publish for ROS
+	private Gson gson;
+
 	// Anchor current position
 	private String anchor_position;
 
 	public BeSpoonTracker() {
 		bespoon = new BeSpoon2D();
-		anchorDistance = new HashMap<>();
+		tracker = new HashMap<>();
+		gson = new GsonBuilder().create();
+	}
+
+	public List<Tag> getTags() {
+		return tags;
+	}
+
+	public void setTags(List<Tag> tags) {
+		this.tags = tags;
 	}
 
 	public void start() {
 		bespoon.addAnchorListener(this);
 		bespoon.addTagListener(this);
 
+		// add tags in bespoon
+		for (Tag t : tags) {
+			addTag(t.getTagId(), t.getX(), t.getY());
+		}
+
+		// add distance listener events of tags
 		for (BeSpoonTag<Euclidean2D> tag : bespoon.getTags()) {
 			bespoon.addDistanceListener(tag, this);
 		}
@@ -70,12 +97,16 @@ public class BeSpoonTracker implements BeSpoonAnchorEventListener<Euclidean2D>, 
 
 	public void tagAdded(BeSpoonTag<Euclidean2D> tag) {
 		System.out.println("Tag added: " + tag.getId());
+
+		// Insert the tag in tracker array
+		tracker.put(tag.getId(), tags.stream().filter(x -> x.getTagId() == tag.getId()).findFirst().get());
 	}
 
 	public void tagRemoved(BeSpoonTag<Euclidean2D> tag) {
 		System.out.println("Tag removed: " + tag.getId());
 		// remove tag and distance while it removed
-		anchorDistance.remove(tag.getId());
+
+		tracker.remove(tag.getId());
 	}
 
 	public void distanceMesurement(int tagId, int distance) {
@@ -101,10 +132,19 @@ public class BeSpoonTracker implements BeSpoonAnchorEventListener<Euclidean2D>, 
 	 */
 
 	public void updateAnchorDistance(int tagId, int distance) {
-		anchorDistance.put(tagId, distance);
+		Tag t = tracker.get(tagId);
+		t.setAnchorDistance(distance);
+		tracker.put(t.getTagId(), t);
 
-		System.out.println("tags: " + Arrays.toString(anchorDistance.keySet().stream().mapToInt(c -> c).toArray())
-				+ ", distance: " + Arrays.toString(anchorDistance.values().stream().mapToInt(c -> c).toArray())
-				+ ", anchor_position: \"" + anchor_position + "\"");
+		publishDataForROS();
+	}
+
+	public void publishDataForROS() {
+		// write data as json format
+		RosData rosdata = new RosData();
+		rosdata.setTags(new ArrayList<>(tracker.values()));
+		rosdata.setAnchor(anchor_position);
+		
+		System.out.println(gson.toJson(rosdata));
 	}
 }
