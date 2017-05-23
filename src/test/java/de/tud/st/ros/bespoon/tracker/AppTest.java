@@ -1,4 +1,4 @@
-package de.tud.st.ros.bespoon_integration;
+package de.tud.st.ros.bespoon.tracker;
 
 import junit.framework.Test;
 import junit.framework.TestCase;

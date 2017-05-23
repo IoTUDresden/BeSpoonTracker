@@ -13,6 +13,8 @@ public class RosData {
 
 	private List<Object> tags;
 	private String anchor;
+	private int anchorX;
+	private int anchorY;
 
 	public List<Object> getTags() {
 		return tags;
@@ -22,15 +24,37 @@ public class RosData {
 		this.tags = tags;
 	}
 
+	public int getAnchorX() {
+		return anchorX;
+	}
+
+	public void setAnchorX(int anchorX) {
+		this.anchorX = anchorX;
+	}
+
+	public int getAnchorY() {
+		return anchorY;
+	}
+
+	public void setAnchorY(int anchorY) {
+		this.anchorY = anchorY;
+	}
+
 	public String getAnchor() {
 		return anchor;
 	}
 
 	public void setAnchor(String anchor) {
-		if (anchor != null) {
-			anchor = anchor.replace('{', '[').replace('}', ']');
-		}
 		this.anchor = anchor;
+
+		// format data for ROS publisher
+		if (anchor != null) {
+			String token[] = (anchor.replace('{', ' ').replace('}', ' ')).split(";");
+			if (token != null && token.length >= 2) {
+				this.anchorX = Integer.parseInt(token[0].trim());
+				this.anchorY = Integer.parseInt(token[1].trim());
+			}
+		}
 	}
 
 }
